@@ -1,1 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CitySnap India</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  :root {
+    --bg: #fdf6ee;
+    --surface: #fff8f0;
+    --card: #ffffff;
+    --border: #e8ddd0;
+    --accent: #d97b4f;
+    --accent-light: #f5e6da;
+    --accent-dark: #b5603a;
+    --text: #3a2e26;
+    --text-muted: #7a6a5e;
+    --green: #4caf7d;
+    --green-light: #e4f5ec;
+    --blue: #5b8fd4;
+    --blue-light: #e8f0fb;
+    --yellow: #e8b84b;
+    --yellow-light: #fdf3d8;
+    --radius: 14px;
+    --shadow: 0 2px 16px rgba(60,40,20,0.08);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* HEADER */
+  .header {
+    width: 100%;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-logo {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .header-logo span { color: var(--text); }
+  .header-info {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .round-dots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .dot.done { background: var(--accent); }
+  .dot.active { background: var(--yellow); }
+
+  /* MAIN LAYOUT */
+  .game-wrap {
+    width: 100%;
+    max-width: 900px;
+    padding: 20px 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* MAP CARD */
+  .map-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .map-label {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .round-badge {
+    background: var(--accent-light);
+    color: var(--accent-dark);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 20px;
+  }
+  #map {
+    width: 100%;
+    height: 380px;
+  }
+  @media (max-width: 600px) {
+    #map { height: 260px; }
+  }
+
+  /* INPUT AREA */
+  .guess-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .guess-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .guess-row {
+    display: flex;
+    gap: 10px;
+  }
+  .guess-input {
+    flex: 1;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 16px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .guess-input:focus { border-color: var(--accent); }
+  .guess-input::placeholder { color: var(--text-muted); }
+  .btn-guess {
+    padding: 11px 22px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .btn-guess:hover { background: var(--accent-dark); }
+  .btn-guess:active { transform: scale(0.97); }
+  .btn-guess:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+
+  /* RESULT CARD */
+  .result-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    box-shadow: var(--shadow);
+    display: none;
+  }
+  .result-card.show { display: block; }
+  .result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .result-city {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .result-points {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .result-meta {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+  .score-bar-wrap {
+    background: var(--surface);
+    border-radius: 8px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .score-bar {
+    height: 100%;
+    border-radius: 8px;
+    background: var(--accent);
+    transition: width 1s cubic-bezier(0.4,0,0.2,1);
+  }
+  .btn-next {
+    width: 100%;
+    padding: 12px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .btn-next:hover { background: #3a9a68; }
+  .btn-next:active { transform: scale(0.98); }
+
+  /* SCORE SUMMARY */
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    box-shadow: var(--shadow);
+    display: none;
+    text-align: center;
+  }
+  .summary-card.show { display: block; }
+  .summary-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .summary-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+  .total-score {
+    font-size: 56px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .total-label {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+  }
+  .rounds-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 480px) {
+    .rounds-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  .round-chip {
+    background: var(--accent-light);
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+  .round-chip-label {
+    font-size: 11px;
+    color: var(--accent-dark);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .round-chip-pts {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-top: 2px;
+  }
+  .btn-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 28px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    margin-bottom: 12px;
+  }
+  .btn-copy:hover { background: var(--accent-light); border-color: var(--accent); }
+  .copied-toast {
+    font-size: 13px;
+    color: var(--green);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .copied-toast.show { opacity: 1; }
+
+  /* TUTORIAL OVERLAY */
+  .tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(58, 46, 38, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .tutorial-box {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px 28px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 8px 40px rgba(60,40,20,0.2);
+  }
+  .tutorial-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    display: block;
+    text-align: center;
+  }
+  .tutorial-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .tutorial-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .tutorial-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .tutorial-step {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .step-num {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent-dark);
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step-text {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.5;
+    padding-top: 4px;
+  }
+  .btn-start {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .btn-start:hover { background: var(--accent-dark); }
+  .btn-start:active { transform: scale(0.98); }
+
+  /* ALREADY PLAYED TODAY */
+  .played-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 24px;
+    text-align: center;
+    margin: 40px auto;
+    max-width: 420px;
+    box-shadow: var(--shadow);
+  }
+
+  /* LOADING */
+  .loading-msg {
+    font-size: 14px;
+    color: var(--text-muted);
+    padding: 8px 0;
+    min-height: 20px;
+  }
+
+  /* Leaflet no-label tile attribution */
+  .leaflet-control-attribution { font-size: 10px !important; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">City<span>Snap</span> <span style="font-size:14px;color:var(--text-muted);font-weight:400;">India</span></div>
+  <div id="round-dots" class="round-dots"></div>
+</div>
+
+<div class="game-wrap" id="game-wrap">
+
+  <!-- Map -->
+  <div class="map-card" id="map-card" style="display:none">
+    <div class="map-label">
+      <span id="round-badge" class="round-badge">Round 1 of 5</span>
+      <span>Where in India is this?</span>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <!-- Guess input -->
+  <div class="guess-card" id="guess-card" style="display:none">
+    <div class="guess-label">Type the name of the city you see above</div>
+    <div class="guess-row">
+      <input type="text" id="guess-input" class="guess-input" placeholder="e.g. Mumbai, Jaipur…" autocomplete="off" />
+      <button class="btn-guess" id="btn-guess" onclick="submitGuess()">Guess</button>
+    </div>
+    <div class="loading-msg" id="loading-msg"></div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-card" id="result-card">
+    <div class="result-header">
+      <div>
+        <div class="result-city" id="result-city-name"></div>
+        <div class="result-meta" id="result-meta"></div>
+      </div>
+      <div class="result-points" id="result-pts"></div>
+    </div>
+    <div class="score-bar-wrap">
+      <div class="score-bar" id="score-bar" style="width:0%"></div>
+    </div>
+    <button class="btn-next" id="btn-next" onclick="nextRound()">Next round →</button>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-card" id="summary-card">
+    <div class="summary-title">Game Over!</div>
+    <div class="summary-subtitle" id="summary-date"></div>
+    <div class="total-score" id="total-score">0</div>
+    <div class="total-label">out of 500 points</div>
+    <div class="rounds-grid" id="rounds-grid"></div>
+    <button class="btn-copy" onclick="copyScore()">
+      <span>📋</span> Copy my score
+    </button>
+    <br/>
+    <div class="copied-toast" id="copied-toast">Copied to clipboard!</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-top:16px;">Come back tomorrow for a new game 🌅</div>
+  </div>
+
+  <!-- Already played -->
+  <div id="played-today" style="display:none">
+    <div class="played-card">
+      <div style="font-size:36px;margin-bottom:12px;">🗺️</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:8px;">You've already played today!</div>
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:20px;">Come back tomorrow for a new set of cities.</div>
+      <div id="played-score-display"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Tutorial overlay -->
+<div class="tutorial-overlay" id="tutorial-overlay" style="display:none">
+  <div class="tutorial-box">
+    <span class="tutorial-icon">🗺️</span>
+    <div class="tutorial-title">Welcome to CitySnap India</div>
+    <div class="tutorial-sub">A daily geography game — 5 rounds, one guess each.</div>
+    <div class="tutorial-steps">
+      <div class="tutorial-step">
+        <div class="step-num">1</div>
+        <div class="step-text">You'll see a satellite + road map view of a city in India, zoomed in enough to see its shape and roads — but with no labels.</div>
+      </div>
+      <div class="tutorial-step">
+        <div class="step-num">2</div>
+        <div class="step-text">Type your best guess for the city name and hit <strong>Guess</strong>. You get one attempt per round.</div>
+      </div>
+      <div class="tutorial-step">
+        <div class="step-num">3</div>
+        <div class="step-text">Score is based on how close your guess is to the actual city. Exact match = 100 pts. Farther away = fewer points.</div>
+      </div>
+      <div class="tutorial-step">
+        <div class="step-num">4</div>
+        <div class="step-text">Play all 5 rounds and share your total score with friends!</div>
+      </div>
+    </div>
+    <button class="btn-start" onclick="startGame()">Let's play!</button>
+  </div>
+</div>
+
+<script>
+// ─── CITY DATABASE ───────────────────────────────────────────────────────────
+const CITIES = [
+  { name: "Mumbai",         lat: 19.0760, lng: 72.8777, zoom: 12 },
+  { name: "Delhi",          lat: 28.6139, lng: 77.2090, zoom: 12 },
+  { name: "Bangalore",      lat: 12.9716, lng: 77.5946, zoom: 12 },
+  { name: "Chennai",        lat: 13.0827, lng: 80.2707, zoom: 12 },
+  { name: "Kolkata",        lat: 22.5726, lng: 88.3639, zoom: 12 },
+  { name: "Hyderabad",      lat: 17.3850, lng: 78.4867, zoom: 12 },
+  { name: "Pune",           lat: 18.5204, lng: 73.8567, zoom: 12 },
+  { name: "Jaipur",         lat: 26.9124, lng: 75.7873, zoom: 12 },
+  { name: "Ahmedabad",      lat: 23.0225, lng: 72.5714, zoom: 12 },
+  { name: "Surat",          lat: 21.1702, lng: 72.8311, zoom: 12 },
+  { name: "Lucknow",        lat: 26.8467, lng: 80.9462, zoom: 12 },
+  { name: "Kochi",          lat: 9.9312,  lng: 76.2673, zoom: 12 },
+  { name: "Chandigarh",     lat: 30.7333, lng: 76.7794, zoom: 12 },
+  { name: "Bhopal",         lat: 23.2599, lng: 77.4126, zoom: 12 },
+  { name: "Nagpur",         lat: 21.1458, lng: 79.0882, zoom: 12 },
+  { name: "Indore",         lat: 22.7196, lng: 75.8577, zoom: 12 },
+  { name: "Varanasi",       lat: 25.3176, lng: 82.9739, zoom: 12 },
+  { name: "Visakhapatnam",  lat: 17.6868, lng: 83.2185, zoom: 12 },
+  { name: "Coimbatore",     lat: 11.0168, lng: 76.9558, zoom: 12 },
+  { name: "Patna",          lat: 25.5941, lng: 85.1376, zoom: 12 },
+  { name: "Amritsar",       lat: 31.6340, lng: 74.8723, zoom: 12 },
+  { name: "Bhubaneswar",    lat: 20.2961, lng: 85.8245, zoom: 12 },
+  { name: "Guwahati",       lat: 26.1445, lng: 91.7362, zoom: 12 },
+  { name: "Thiruvananthapuram", lat: 8.5241, lng: 76.9366, zoom: 12 },
+  { name: "Madurai",        lat: 9.9252,  lng: 78.1198, zoom: 12 },
+  { name: "Jodhpur",        lat: 26.2389, lng: 73.0243, zoom: 12 },
+  { name: "Agra",           lat: 27.1767, lng: 78.0081, zoom: 12 },
+  { name: "Vadodara",       lat: 22.3072, lng: 73.1812, zoom: 12 },
+  { name: "Mangalore",      lat: 12.9141, lng: 74.8560, zoom: 12 },
+  { name: "Mysuru",         lat: 12.2958, lng: 76.6394, zoom: 12 },
+];
+
+// ─── DAILY SEED ──────────────────────────────────────────────────────────────
+function getDailyKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+
+function seededRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 0xffffffff;
+  };
+}
+
+function getTodaysCities() {
+  const key = getDailyKey();
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  const rng = seededRandom(Math.abs(hash));
+  const shuffled = [...CITIES];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, 5);
+}
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let map = null;
+let todaysCities = [];
+let currentRound = 0;
+let scores = [];
+const STORAGE_KEY = 'citysnap_india_v1';
+const TUTORIAL_KEY = 'citysnap_tutorial_seen';
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    date: getDailyKey(),
+    scores,
+    round: currentRound
+  }));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (s.date !== getDailyKey()) return null;
+    return s;
+  } catch(e) { return null; }
+}
+
+// ─── SCORING ─────────────────────────────────────────────────────────────────
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function calcScore(distKm) {
+  if (distKm < 30) return 100;
+  return Math.max(0, Math.round(100 * Math.exp(-distKm / 1800)));
+}
+
+// ─── GEOCODE ─────────────────────────────────────────────────────────────────
+async function geocodeCity(name) {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name+', India')}&format=json&limit=3&countrycodes=in`;
+  const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+  const data = await res.json();
+  if (!data || data.length === 0) {
+    // Try without India restriction
+    const url2 = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name)}&format=json&limit=3`;
+    const res2 = await fetch(url2, { headers: { 'Accept-Language': 'en' } });
+    const data2 = await res2.json();
+    if (!data2 || data2.length === 0) return null;
+    return { lat: parseFloat(data2[0].lat), lng: parseFloat(data2[0].lon), display: data2[0].display_name };
+  }
+  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), display: data[0].display_name };
+}
+
+// ─── MAP ─────────────────────────────────────────────────────────────────────
+function initMap(city) {
+  if (map) { map.remove(); map = null; }
+  map = L.map('map', {
+    center: [city.lat, city.lng],
+    zoom: city.zoom,
+    zoomControl: false,
+    attributionControl: true,
+    dragging: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    touchZoom: false,
+    keyboard: false,
+  });
+
+  // No-label tile: CartoDB Positron No Labels (free, no auth)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }).addTo(map);
+}
+
+// ─── ROUND DOTS ──────────────────────────────────────────────────────────────
+function updateDots() {
+  const wrap = document.getElementById('round-dots');
+  wrap.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < currentRound ? ' done' : (i === currentRound ? ' active' : ''));
+    wrap.appendChild(d);
+  }
+}
+
+// ─── SHOW ROUND ──────────────────────────────────────────────────────────────
+function showRound(idx) {
+  const city = todaysCities[idx];
+  document.getElementById('round-badge').textContent = `Round ${idx+1} of 5`;
+  document.getElementById('map-card').style.display = '';
+  document.getElementById('guess-card').style.display = '';
+  document.getElementById('result-card').classList.remove('show');
+  document.getElementById('summary-card').classList.remove('show');
+  document.getElementById('guess-input').value = '';
+  document.getElementById('guess-input').disabled = false;
+  document.getElementById('btn-guess').disabled = false;
+  document.getElementById('loading-msg').textContent = '';
+  updateDots();
+  initMap(city);
+}
+
+// ─── SUBMIT GUESS ─────────────────────────────────────────────────────────────
+async function submitGuess() {
+  const input = document.getElementById('guess-input');
+  const btn = document.getElementById('btn-guess');
+  const loadMsg = document.getElementById('loading-msg');
+  const guess = input.value.trim();
+  if (!guess) { input.focus(); return; }
+
+  input.disabled = true;
+  btn.disabled = true;
+  loadMsg.textContent = 'Looking up your city…';
+
+  let result;
+  try {
+    result = await geocodeCity(guess);
+  } catch(e) {
+    loadMsg.textContent = 'Network error — please try again.';
+    input.disabled = false;
+    btn.disabled = false;
+    return;
+  }
+
+  loadMsg.textContent = '';
+
+  const actual = todaysCities[currentRound];
+  let distKm, pts;
+
+  if (!result) {
+    distKm = 9999;
+    pts = 0;
+  } else {
+    distKm = haversineKm(result.lat, result.lng, actual.lat, actual.lng);
+    pts = calcScore(distKm);
+  }
+
+  scores.push(pts);
+  saveState();
+  showResult(actual, guess, result, distKm, pts);
+}
+
+// ─── SHOW RESULT ─────────────────────────────────────────────────────────────
+function showResult(actual, guess, geocoded, distKm, pts) {
+  const card = document.getElementById('result-card');
+  card.classList.add('show');
+
+  document.getElementById('result-city-name').textContent = `The city was ${actual.name}`;
+  document.getElementById('result-pts').textContent = `${pts} pts`;
+
+  let meta;
+  if (pts === 100) {
+    meta = `Perfect! "${guess}" is spot on. 🎯`;
+  } else if (!geocoded) {
+    meta = `Couldn't find "${guess}" on the map.`;
+  } else {
+    meta = `Your guess "${guess}" was ${Math.round(distKm).toLocaleString()} km away.`;
+  }
+  document.getElementById('result-meta').textContent = meta;
+
+  const bar = document.getElementById('score-bar');
+  bar.style.width = '0%';
+  // Color by score
+  const pct = pts;
+  bar.style.background = pct >= 80 ? '#4caf7d' : pct >= 50 ? '#e8b84b' : '#d97b4f';
+  setTimeout(() => { bar.style.width = pct + '%'; }, 50);
+
+  const nextBtn = document.getElementById('btn-next');
+  if (currentRound >= 4) {
+    nextBtn.textContent = 'See final score →';
+  } else {
+    nextBtn.textContent = `Round ${currentRound + 2} →`;
+  }
+}
+
+// ─── NEXT ROUND ──────────────────────────────────────────────────────────────
+function nextRound() {
+  currentRound++;
+  saveState();
+  if (currentRound >= 5) {
+    showSummary();
+  } else {
+    showRound(currentRound);
+  }
+}
+
+// ─── SUMMARY ─────────────────────────────────────────────────────────────────
+function showSummary() {
+  document.getElementById('map-card').style.display = 'none';
+  document.getElementById('guess-card').style.display = 'none';
+  document.getElementById('result-card').classList.remove('show');
+  const card = document.getElementById('summary-card');
+  card.classList.add('show');
+
+  const total = scores.reduce((a,b)=>a+b,0);
+  document.getElementById('total-score').textContent = total;
+
+  const d = new Date();
+  document.getElementById('summary-date').textContent =
+    d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const grid = document.getElementById('rounds-grid');
+  grid.innerHTML = '';
+  scores.forEach((s, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'round-chip';
+    chip.innerHTML = `<div class="round-chip-label">Round ${i+1}</div><div class="round-chip-pts">${s}</div>`;
+    grid.appendChild(chip);
+  });
+
+  updateDots();
+}
+
+// ─── COPY SCORE ──────────────────────────────────────────────────────────────
+function copyScore() {
+  const d = new Date();
+  const dateStr = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const total = scores.reduce((a,b)=>a+b,0);
+  let text = `🗺️ CitySnap India — ${dateStr}\n`;
+  scores.forEach((s, i) => {
+    const bar = '▓'.repeat(Math.round(s/10)) + '░'.repeat(10 - Math.round(s/10));
+    text += `Round ${i+1}: ${bar} ${s}pts\n`;
+  });
+  text += `Total: ${total}/500`;
+  navigator.clipboard.writeText(text).then(() => {
+    const t = document.getElementById('copied-toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  });
+}
+
+// ─── ALREADY PLAYED ──────────────────────────────────────────────────────────
+function showAlreadyPlayed(state) {
+  document.getElementById('played-today').style.display = '';
+  const total = state.scores.reduce((a,b)=>a+b,0);
+  let html = `<div style="font-size:28px;font-weight:800;color:var(--accent);margin-bottom:4px;">${total}<span style="font-size:16px;color:var(--text-muted);font-weight:400;">/500</span></div>`;
+  html += '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;">';
+  state.scores.forEach((s,i) => {
+    html += `<div style="background:var(--accent-light);border-radius:8px;padding:6px 10px;text-align:center;"><div style="font-size:11px;color:var(--accent-dark);font-weight:600;">R${i+1}</div><div style="font-size:18px;font-weight:700;color:var(--accent);">${s}</div></div>`;
+  });
+  html += '</div>';
+  html += `<button class="btn-copy" onclick="(function(){
+    var d=new Date();var dateStr=d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    var text='🗺️ CitySnap India — '+dateStr+'\\n';
+    var ss=${JSON.stringify(state.scores)};
+    ss.forEach(function(s,i){var bar='▓'.repeat(Math.round(s/10))+'░'.repeat(10-Math.round(s/10));text+='Round '+(i+1)+': '+bar+' '+s+'pts\\n';});
+    text+='Total: ${total}/500';
+    navigator.clipboard.writeText(text).then(function(){var t=document.getElementById('copied-toast2');t.style.opacity=1;setTimeout(function(){t.style.opacity=0;},2500);});
+  })()">📋 Copy my score</button>
+  <div id="copied-toast2" style="font-size:13px;color:var(--green);opacity:0;transition:opacity 0.3s;margin-top:6px;">Copied!</div>`;
+  document.getElementById('played-score-display').innerHTML = html;
+}
+
+// ─── GAME INIT ───────────────────────────────────────────────────────────────
+function startGame() {
+  localStorage.setItem(TUTORIAL_KEY, '1');
+  document.getElementById('tutorial-overlay').style.display = 'none';
+  beginGamePlay();
+}
+
+function beginGamePlay() {
+  todaysCities = getTodaysCities();
+  currentRound = 0;
+  scores = [];
+  showRound(0);
+}
+
+function init() {
+  const savedState = loadState();
+
+  // If played all 5 rounds today already
+  if (savedState && savedState.scores && savedState.scores.length >= 5) {
+    showAlreadyPlayed(savedState);
+    // Show dots as all done
+    scores = savedState.scores;
+    currentRound = 5;
+    updateDots();
+    return;
+  }
+
+  // If mid-game today (partially played)
+  if (savedState && savedState.scores && savedState.scores.length > 0 && savedState.round < 5) {
+    scores = savedState.scores;
+    currentRound = savedState.round;
+    todaysCities = getTodaysCities();
+    // Don't show tutorial
+    showRound(currentRound);
+    return;
+  }
+
+  // Fresh start: check tutorial
+  const tutorialSeen = localStorage.getItem(TUTORIAL_KEY);
+  if (!tutorialSeen) {
+    document.getElementById('tutorial-overlay').style.display = 'flex';
+  } else {
+    beginGamePlay();
+  }
+}
+
+window.addEventListener('load', () => {
+  document.getElementById('guess-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitGuess();
+  });
+  init();
+});
+</script>
+</body>
+</html>
