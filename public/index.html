@@ -1,3 +1,553 @@
+
+/
+Claude finished the response
+Lets build an Website that has a small fun game. This should work on desktop as well as mobile browsers.
+Here as a User, when I enter the site, I should be given an instruction of how the game is to be played. Once the user interacts and is done with the initial tutorial, (this is stored on the browser that this user knows how to play the game, so the next day this should not show up again.), The game for the day starts.
+The Game: The game should show a piece of Satellite image of a city or Town, with no text that gives away the city or location name. The user has to guess the city. In one Attempt. Based on the guess, we then calculate the spatial distance between the city mentioned and the actual image of the city to calculate the point for the round. The point calculation should be done based on how far the tap was from the actual location, as a relative number for a maximum of 100 points. If the guess is the right city, its 100, the further away the lesser the points.
+Once this is shown to the user, the score should be saved in the cache or somewhere and the second round begins. The same is done for 5 rounds. Then the total score is recorded and an option is shown to copy the score. The score should only show the points from each round.
+
+Before you start building, tell me what and how you are doing it and get ma ypproval
+
+Show more
+Jun 12
+Here's my plan before I start building:
+
+Game Plan: "CitySnap" 🌍
+Core Concept
+A daily geo-guessing game (think Wordle-meets-GeoGuessr) where users identify cities from satellite imagery across 5 rounds.
+
+Tech Stack
+Single HTML file — no backend, works on any host, mobile + desktop
+Leaflet.js — for the interactive map where users type/select their guess
+OpenStreetMap Nominatim API — to geocode the user's typed city guess into coordinates
+Haversine formula — to calculate km distance between guessed city and actual city
+localStorage — to store: tutorial-seen flag, today's scores, and daily seed so same 5 cities show per day
+Game Flow
+First visit ever → Tutorial overlay (stored in localStorage so it never shows again)
+Daily game — 5 rounds, same for everyone on the same day (seeded by date)
+Each round:
+Show satellite tile image (cropped, no labels) of a city
+User types a city name → submits
+Nominatim geocodes their answer → we get coordinates
+Haversine distance calculated → score computed
+Result shown (distance + points), then next round
+After round 5 → Total score screen with copyable result like:
+   CitySnap 📍 12 Jun
+   Round 1: 87pts
+   Round 2: 45pts
+   Round 3: 100pts
+   Round 4: 62pts
+   Round 5: 71pts
+   Total: 365/500
+Scoring Formula
+0 km away = 100 pts
+Uses an exponential decay: score = Math.round(100 * Math.exp(-distance / 2000))
+~500 km away ≈ 78 pts, ~2000 km ≈ 37 pts, ~5000 km ≈ 8 pts
+City Pool
+I'll hardcode ~30 cities with known coordinates and a static satellite image URL (via OpenStreetMap tile servers — no API key needed). The 5 daily cities are picked deterministically from the date seed.
+
+What I need your input on:
+Difficulty mix — should the cities be globally well-known (Paris, Tokyo) or include some obscure ones for a challenge?
+Image style — pure satellite (terrain visible, no roads/labels), which I can get from tile providers
+Any specific cities you want included?
+Otherwise, I'm ready to build — just say go! 🚀
+
+Lets get the Terrain, Roads, and everything else except the text that says the road city lake river etc.
+Cities from India would be good to begin with.
+
+Jun 12
+Great choices! Here's the updated plan:
+
+Updated Approach
+Map Tiles
+I'll use Mapbox or Stamen tiles that show terrain + roads + buildings but no labels — there are specific tile styles for this:
+
+Stamen Toner Background — shows roads/terrain, zero labels
+OpenStreetMap "no-labels" variants — same idea
+I'll use Leaflet.js with a label-free tile layer, zoomed into the city center so roads and terrain are visible but no text clues exist
+City Pool (India-focused, ~20 cities)
+A mix of difficulty:
+
+Easy: Mumbai, Delhi, Bangalore, Chennai, Kolkata
+Medium: Jaipur, Hyderabad, Pune, Ahmedabad, Surat
+Hard: Varanasi, Bhopal, Nagpur, Indore, Visakhapatnam, Kochi, Coimbatore, Chandigarh, Lucknow, Patna
+Each city stored as:
+js
+{ name, lat, lng, zoom }
+The map view will be centered on the city at a zoom level that shows the urban fabric — enough to see road networks, rivers, coastline, density — but cropped so no name is visible.
+
+Guess Input
+User types a city name → Nominatim geocodes it → coordinates returned → Haversine distance vs actual city → score.
+
+Ready to build. Shall I go ahead? 🚀
+
+Yes lets build it. 
+Dont use a dark theme, make it a simple pastel color theme
+
+Jun 12
+
+Check frontend design skill
+Check frontend design skill
+Now let me build this. It'll be a full HTML file with Leaflet.js for the map, a pastel theme, tutorial overlay, 5-round daily game with Indian cities, scoring, and localStorage persistence.
+
+
+Ran a command, created a file, read a file
+Ran a command, created a file, read a file
+Here's your CitySnap India game! 🎉
+
+Here's what's built in:
+
+Gameplay
+
+5 rounds per day, cities are picked deterministically from the date — same cities for everyone on the same day
+Map uses Stadia/Stamen Toner Background tiles — roads, terrain, coastlines, rivers, all visible but zero text labels
+One guess per round, typed city name is geocoded via Nominatim (OpenStreetMap)
+Haversine distance → exponential decay scoring (0–100 pts per round, 500 max)
+Persistence (localStorage)
+
+Tutorial overlay shows only once, ever — never again after first play
+Mid-game progress is saved — if you close the tab and return, you resume where you left off
+If you've already finished today's game, it shows your scores and a copy button instead
+Share score format looks like:
+
+🗺️ CitySnap India — 12 Jun 2026
+Round 1: ▓▓▓▓▓▓▓▓░░ 80pts
+Round 2: ▓▓▓▓▓░░░░░ 50pts
+...
+Total: 365/500
+Cities included: 30 Indian cities ranging from easy (Mumbai, Delhi) to tricky (Guwahati, Thiruvananthapuram, Mangalore). To add more cities or tweak zoom levels, just let me know!
+
+
+Citysnap
+Code · HTML 
+Uncaught Error: Uncaught ReferenceError: L is not defined
+
+Jun 12
+The issue is that the Leaflet JS is loading from unpkg.com which isn't on the allowed CDN list. Let me fix it to use cdnjs.cloudflare.com instead.
+
+
+Fix Leaflet CDN to use cdnjs
+Fix Leaflet CDN to use cdnjs
+Also, the init() call and the event listener run immediately when the script executes — but Leaflet loads asynchronously. Let me also move the init to fire after the page fully loads:
+
+
+Edited 2 files, read a file
+Edited 2 files, read a file
+Two fixes applied:
+
+Leaflet CDN switched from unpkg.com → cdnjs.cloudflare.com (which is on the allowed list)
+Init timing — wrapped in window.addEventListener('load', ...) so Leaflet is fully loaded before the map tries to initialize
+Should work now — give it another try!
+
+
+Citysnap
+Code · HTML 
+Getting a 401 Authetication error when the html is loading
+
+Jun 12
+The Stadia Maps tile URL requires an API key — that's the 401. Let me switch to a completely free, no-auth tile provider. I'll use CartoDB Positron No Labels which shows roads and terrain but no text labels, and requires zero authentication.
+
+
+Edited a file, read a file
+Edited a file, read a file
+Switched to CartoDB Light No Labels — completely free, no API key, no sign-up needed. It shows roads, building outlines, water bodies, and terrain in a clean light style, with all city/street text labels removed. Should load without any auth errors now!
+
+
+Citysnap
+Code · HTML 
+This is great. Lets save this as Initial Draft and when ever we want to revert to the initial Draft I want to select this HTML
+
+Jun 12
+
+Ran a command, read a file
+Ran a command, read a file
+Done! Two files now:
+
+citysnap_initial_draft.html — the saved baseline, never touch this one
+citysnap.html — the working file where all future changes go
+Whenever you want to revert, just say so and I'll copy the initial draft back over the working file. What would you like to improve next?
+
+
+Citysnap initial draft
+Code · HTML 
+
+Citysnap
+Code · HTML 
+I want to host this on CloudFlare 
+How do I do it?
+
+Jun 12
+Here's the simplest way to host it on Cloudflare — using Cloudflare Pages, which is free and perfect for a single HTML file.
+
+Option 1 — Direct Upload (easiest, no coding)
+Go to pages.cloudflare.com and sign in (or create a free account)
+Click "Create a project" → "Direct Upload"
+Give your project a name, e.g. citysnap-india
+Upload the citysnap.html file — drag and drop it in
+Click "Deploy site"
+Cloudflare gives you a free URL instantly like:
+https://citysnap-india.pages.dev
+
+To update later, just go back to your project and upload a new version of the file.
+
+Option 2 — GitHub (better for ongoing updates)
+Create a free GitHub account if you don't have one
+Create a new repository, upload citysnap.html into it
+In Cloudflare Pages → "Connect to Git" → link your GitHub repo
+Every time you push a new version of the file to GitHub, Cloudflare auto-deploys it
+Custom Domain (optional)
+If you own a domain (e.g. citysnap.in):
+
+In Cloudflare Pages → your project → "Custom Domains" → add your domain
+If your domain is already on Cloudflare DNS, it connects in one click
+I'd recommend Option 1 to start — you can have it live in under 5 minutes. Option 2 is worth setting up once you're iterating regularly on the game.
+
+Want me to make any tweaks to the file before you deploy?
+
+From github how do I host it?
+
+Jun 12
+Hosting on Cloudflare Pages via GitHub
+Step 1 — Create a GitHub repository
+Go to github.com and sign in
+Click the "+" icon top right → "New repository"
+Name it citysnap-india, set it to Public, click "Create repository"
+Step 2 — Upload your file
+On the repository page:
+
+Click "Add file" → "Upload files"
+Drag and drop your citysnap.html file
+At the bottom click "Commit changes"
+Step 3 — Connect to Cloudflare Pages
+Go to pages.cloudflare.com and sign in
+Click "Create a project" → "Connect to Git"
+Click "Connect GitHub" → authorize Cloudflare to access your GitHub
+Select your citysnap-india repository → click "Begin setup"
+Step 4 — Configure the build
+On the setup screen:
+
+Field	Value
+Project name	citysnap-india
+Production branch	main
+Build command	(leave empty)
+Build output directory	(leave empty)
+Click "Save and Deploy"
+
+Step 5 — Done!
+In about 60 seconds your site is live at:
+https://citysnap-india.pages.dev
+
+Updating the game later
+Whenever you want to push a new version:
+
+Go to your GitHub repo
+Click on citysnap.html → click the pencil ✏️ edit icon
+Paste the updated file content → "Commit changes"
+Cloudflare automatically detects the change and redeploys — usually live within a minute
+That's the full loop. Want me to prepare anything else in the file before you go live?
+
+✘ [ERROR] Could not detect a directory containing static files (e.g. html, css and js) for the project
+
+When I try to host it on Cloud Flair
+
+9:38 AM
+This error happens because Cloudflare expects files to be in a folder, not just loose in the root. Two ways to fix it:
+
+Fix — Add a folder to your GitHub repo
+Go to your GitHub repository
+Click "Add file" → "Create new file"
+In the filename box type exactly: public/index.html
+Typing the / automatically creates the folder
+Copy and paste the entire contents of your citysnap.html into the editor
+Click "Commit changes"
+Now your repo structure looks like:
+
+citysnap-india/
+└── public/
+    └── index.html
+Then in Cloudflare Pages build settings
+Field	Value
+Build command	(leave empty)
+Build output directory	public
+Hit Save and Deploy — should work now.
+
+Tip: You can delete the old citysnap.html from the root of the repo after this — it's no longer needed. Just click the file on GitHub → the trash icon → Commit.
+
+Where should my citysnap-India-Inital_draft.html be in this folder structure)
+
+9:40 AM
+Keep it outside the public folder so Cloudflare doesn't serve it publicly:
+
+citysnap-india/
+├── public/
+│   └── index.html          ← the live game (your citysnap.html)
+└── citysnap_initial_draft.html   ← stored in root, NOT served publicly
+Cloudflare Pages only serves what's inside the public folder, so the draft file sits safely in the root — version controlled on GitHub but never accessible via the live URL.
+
+So index.html is a blacnk file?
+
+9:41 AM
+No! index.html is your citysnap.html — just renamed.
+
+When you create the file on GitHub and type public/index.html as the name, paste the entire contents of citysnap.html into it. It's the same file, just:
+
+Renamed to index.html (standard web convention — browsers look for this by default)
+Placed inside the public/ folder
+So your structure is:
+
+citysnap-india/
+├── public/
+│   └── index.html          ← full game code, copy-pasted from citysnap.html
+└── citysnap_initial_draft.html   ← your backup, sits here untouched
+If I want a different URL how do I change it in CloudFlare?
+
+9:45 AM
+In Cloudflare Pages you can change it in two ways:
+
+Option 1 — Change the .pages.dev subdomain
+Go to Cloudflare Dashboard → Pages → your project
+Click "Settings" → "General"
+Under "Project name" click "Edit"
+Type your new name e.g. citysnap → Save
+Your URL becomes https://citysnap.pages.dev
+
+Option 2 — Use your own custom domain (e.g. citysnap.in)
+Buy a domain from any registrar (Google Domains, Namecheap, etc.)
+Go to your Cloudflare Pages project → "Custom Domains" → "Set up a custom domain"
+Type your domain e.g. citysnap.in → "Continue"
+Cloudflare walks you through pointing your domain's DNS to Cloudflare
+If you buy the domain directly through Cloudflare (cloudflare.com → Domain Registration) it connects automatically in one click — no DNS setup needed.
+
+Option 1 is free and takes 30 seconds. Option 2 costs whatever the domain costs (~$10–15/year for a .in) but gives you a proper branded URL.
+
+[citysnap-india.vashist-subbaraya.workers.dev](https://citysnap-india.vashist-subbaraya.workers.dev/)
+I dont want my name with the URL
+
+9:55 AM
+Go with Option 1 — change the project name in Cloudflare:
+
+Cloudflare Dashboard → Pages → click your project
+Settings → General
+Under "Project name" → click "Edit"
+Change it to just citysnap-india or citysnap
+Save
+Your URL becomes:
+https://citysnap-india.pages.dev
+
+Note: It looks like Cloudflare deployed it as a Worker (workers.dev) instead of a Pages project, which is why your name is in the URL. Make sure you're using Cloudflare Pages (not Workers) — the steps I described earlier should give you a clean pages.dev URL with no personal name in it.
+
+Okay so we have the initial Draft
+The Feedback is that it is too hard to guess with the way the city is shown now. 
+Lets may be change the view of the map
+
+10:05 AM
+Good feedback! Let me think through options before making changes.
+
+The Problem
+CartoDB Light No Labels at zoom 12 shows a very wide area — hard to recognize a city's unique shape or landmarks without context clues.
+
+Options to make it more recognizable
+Option A — Zoom out slightly (zoom 10–11)
+Show more of the city's surroundings — coastline, rivers, neighboring towns, overall urban sprawl shape. Mumbai's peninsula, Kochi's backwaters, Delhi's grid become more obvious.
+
+Option B — Zoom in more (zoom 13–14)
+Show street-level detail — road density, block patterns, distinctive neighborhoods. Harder in some ways but you can recognize dense vs sparse areas.
+
+Option C — Switch to a terrain/satellite-style tile
+Use OpenTopoMap or ESRI World Imagery — shows actual terrain elevation, green patches, water in blue, which makes coastal/river cities much more distinctive.
+
+Option D — Show two views side by side
+A zoomed-out overview (zoom 10) + a zoomed-in detail (zoom 13) of the same city.
+
+Option E — Add a subtle difficulty hint
+Keep the map as-is but add a small text hint like "This city is on the west coast" or "This is a state capital" — without naming it.
+
+My recommendation: Option A + C combined — zoom out to 10–11 AND switch to a terrain/topo tile so rivers, coastlines and elevation give natural visual clues.
+
+What do you think? Or mix and match?
+
+Lets do a terrain view Lets implement only option C first
+
+10:05 AM
+
+Edited a file, read a file
+Edited a file, read a file
+Switched to ESRI World Imagery — real satellite photos, completely free, no API key needed. You'll now see:
+
+Actual terrain, vegetation, and land cover
+Rivers, lakes, and coastlines in their natural colours
+Urban density visible as grey/white built-up areas vs green open land
+No text labels anywhere
+Mumbai's peninsula, Kochi's backwaters, Varanasi along the Ganges — all much more distinctive now. Give it a try and let me know if you want to also tweak the zoom level!
+
+
+Citysnap
+Code · HTML 
+Now this looks good. Lets Zoom in one more step
+
+10:07 AM
+
+Edited a file, read a file
+Edited a file, read a file
+Done — all 30 cities bumped from zoom 12 → zoom 13. You'll now see more street-level detail, building clusters, and finer road networks while still getting enough of the city's overall shape. Let me know how it feels!
+
+
+Citysnap
+Code · HTML 
+Lets zoom another
+
+12:42 PM
+
+Edited a file, read a file
+Edited a file, read a file
+Done — all cities now at zoom 14. At this level you'll see individual building blocks, parks, stadiums, and road intersections clearly. If it feels too close, zoom 13 is a good middle ground — just say the word!
+
+
+Citysnap
+Code · HTML 
+This looks good. 
+Lets increase the size of the window where we show the map. SO that the user can see the map better
+
+12:46 PM
+
+Edited a file, read a file
+Edited a file, read a file
+Done! Map window updated:
+
+Desktop: 380px → 550px (much more to look at)
+Mobile: 260px → 380px (fills more of the screen)
+Let me know how it feels or if you'd like it even bigger!
+
+
+Citysnap
+Code · HTML 
+When a user enters the City, lets give a suggestion
+
+12:47 PM
+Good idea! I'll add a live autocomplete dropdown that suggests city names as the user types, pulling from the Nominatim API.
+
+
+Viewed 4 files
+Viewed 4 files
+Now I have a clear picture. Let me add the autocomplete dropdown:
+
+
+Add autocomplete dropdown styles
+Add autocomplete dropdown styles
+Now update the HTML to wrap the input in the guess-wrap div and add the dropdown:
+
+
+Wrap input in guess-wrap and add autocomplete dropdown
+Wrap input in guess-wrap and add autocomplete dropdown
+Now add the autocomplete JS logic before the window.addEventListener('load', ...) block:
+
+
+Viewed 2 files, edited a file, read a file
+Viewed 2 files, edited a file, read a file
+Autocomplete is live! Here's how it works:
+
+Triggers after 2 characters with a 280ms debounce (so it doesn't fire on every keystroke)
+Shows up to 5 suggestions from Nominatim, filtered to India only, with the city name and state shown
+Keyboard navigation — Arrow Up/Down to move through suggestions, Enter to select, Escape to close
+Click to select on mobile/desktop
+Selecting a suggestion auto-submits the guess immediately
+Dropdown closes if you click anywhere outside it
+
+Citysnap
+Code · HTML 
+Lets revert the last change, No need of autocomplete dropdown
+
+12:50 PM
+
+Revert citysnap.html to initial draft
+Revert citysnap.html to initial draft
+Wait — the initial draft won't have the terrain tiles and zoom changes we made after it. Let me revert just the autocomplete changes properly instead.
+
+
+Restore from initial draft first
+Restore from initial draft first
+Actually, the initial draft has the old CartoDB tiles and zoom 12. Let me rebuild the correct state — initial draft + ESRI terrain + zoom 14 + bigger map — without the autocomplete:
+
+
+Edited a file, viewed a file
+Edited a file, viewed a file
+Good — the initial draft already has the cdnjs links. Now let me apply all the post-draft improvements (ESRI tiles, zoom 14, bigger map, window.load fix) without the autocomplete:
+
+
+Edited 4 files, viewed a file
+Edited 4 files, viewed a file
+All good — the window.load handler is already in the initial draft. Everything is clean.
+
+
+Presented file
+Presented file
+Done! Reverted cleanly. The working file is back to the good state with:
+
+✅ ESRI satellite terrain tiles
+✅ Zoom 14
+✅ Larger map (550px desktop / 380px mobile)
+❌ No autocomplete dropdown
+What would you like to work on next?
+
+
+Citysnap
+Code · HTML 
+Can we allow the user to zoom in but restrict to max zoom 14, not any higher
+
+12:52 PM
+
+Viewed 3 files, edited a file, read a file
+Viewed 3 files, edited a file, read a file
+Done! Here's what changed:
+
+Zoom in/out enabled — scroll wheel, pinch on mobile, double-click, and the +/− buttons all work now
+Max zoom capped at 14 — can't zoom in further than the starting view
+Min zoom set to 10 — can zoom out a bit to get more context, but not so far the city disappears
+Dragging enabled — users can also pan around the map to explore
+
+Citysnap
+Code · HTML 
+Cap max zoom to 20 and min to 10. 
+Default for each one lets set to 14 when the map shows first
+
+12:54 PM
+
+Edited a file, read a file
+Edited a file, read a file
+Done! Updated to:
+
+Default zoom: 14 for every city on load
+Min zoom: 10 — can zoom out for more context
+Max zoom: 20 — full street-level detail available
+
+Citysnap
+Code · HTML 
+Change to this
+
+Default zoom: 14 for every city on load
+Min zoom: 12— can zoom out for more context
+Max zoom: 20 — full street-level detail available
+12:56 PM
+
+Edited a file, read a file
+Edited a file, read a file
+Done! Min zoom updated to 12. All three settings are now locked in as requested.
+
+
+Citysnap
+Code · HTML 
+
+Claude Fable 5 is currently unavailable.
+Learn more(opens in new tab)
+
+
+
+
+
+Claude is AI and can make mistakes. Please double-check responses.
+
+
+Citysnap · HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +558,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
+ 
   :root {
     --bg: #fdf6ee;
     --surface: #fff8f0;
@@ -28,7 +578,7 @@
     --radius: 14px;
     --shadow: 0 2px 16px rgba(60,40,20,0.08);
   }
-
+ 
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg);
@@ -38,7 +588,7 @@
     flex-direction: column;
     align-items: center;
   }
-
+ 
   /* HEADER */
   .header {
     width: 100%;
@@ -73,7 +623,7 @@
   }
   .dot.done { background: var(--accent); }
   .dot.active { background: var(--yellow); }
-
+ 
   /* MAIN LAYOUT */
   .game-wrap {
     width: 100%;
@@ -84,7 +634,7 @@
     flex-direction: column;
     gap: 16px;
   }
-
+ 
   /* MAP CARD */
   .map-card {
     background: var(--card);
@@ -113,12 +663,12 @@
   }
   #map {
     width: 100%;
-    height: 380px;
+    height: 550px;
   }
   @media (max-width: 600px) {
-    #map { height: 260px; }
+    #map { height: 380px; }
   }
-
+ 
   /* INPUT AREA */
   .guess-card {
     background: var(--card);
@@ -164,7 +714,7 @@
   .btn-guess:hover { background: var(--accent-dark); }
   .btn-guess:active { transform: scale(0.97); }
   .btn-guess:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
-
+ 
   /* RESULT CARD */
   .result-card {
     background: var(--card);
@@ -223,7 +773,7 @@
   }
   .btn-next:hover { background: #3a9a68; }
   .btn-next:active { transform: scale(0.98); }
-
+ 
   /* SCORE SUMMARY */
   .summary-card {
     background: var(--card);
@@ -309,7 +859,7 @@
     transition: opacity 0.3s;
   }
   .copied-toast.show { opacity: 1; }
-
+ 
   /* TUTORIAL OVERLAY */
   .tutorial-overlay {
     position: fixed;
@@ -392,7 +942,7 @@
   }
   .btn-start:hover { background: var(--accent-dark); }
   .btn-start:active { transform: scale(0.98); }
-
+ 
   /* ALREADY PLAYED TODAY */
   .played-card {
     background: var(--card);
@@ -404,7 +954,7 @@
     max-width: 420px;
     box-shadow: var(--shadow);
   }
-
+ 
   /* LOADING */
   .loading-msg {
     font-size: 14px;
@@ -412,20 +962,20 @@
     padding: 8px 0;
     min-height: 20px;
   }
-
+ 
   /* Leaflet no-label tile attribution */
   .leaflet-control-attribution { font-size: 10px !important; }
 </style>
 </head>
 <body>
-
+ 
 <div class="header">
   <div class="header-logo">City<span>Snap</span> <span style="font-size:14px;color:var(--text-muted);font-weight:400;">India</span></div>
   <div id="round-dots" class="round-dots"></div>
 </div>
-
+ 
 <div class="game-wrap" id="game-wrap">
-
+ 
   <!-- Map -->
   <div class="map-card" id="map-card" style="display:none">
     <div class="map-label">
@@ -434,7 +984,7 @@
     </div>
     <div id="map"></div>
   </div>
-
+ 
   <!-- Guess input -->
   <div class="guess-card" id="guess-card" style="display:none">
     <div class="guess-label">Type the name of the city you see above</div>
@@ -444,7 +994,7 @@
     </div>
     <div class="loading-msg" id="loading-msg"></div>
   </div>
-
+ 
   <!-- Result -->
   <div class="result-card" id="result-card">
     <div class="result-header">
@@ -459,7 +1009,7 @@
     </div>
     <button class="btn-next" id="btn-next" onclick="nextRound()">Next round →</button>
   </div>
-
+ 
   <!-- Summary -->
   <div class="summary-card" id="summary-card">
     <div class="summary-title">Game Over!</div>
@@ -474,7 +1024,7 @@
     <div class="copied-toast" id="copied-toast">Copied to clipboard!</div>
     <div style="font-size:13px;color:var(--text-muted);margin-top:16px;">Come back tomorrow for a new game 🌅</div>
   </div>
-
+ 
   <!-- Already played -->
   <div id="played-today" style="display:none">
     <div class="played-card">
@@ -484,9 +1034,9 @@
       <div id="played-score-display"></div>
     </div>
   </div>
-
+ 
 </div>
-
+ 
 <!-- Tutorial overlay -->
 <div class="tutorial-overlay" id="tutorial-overlay" style="display:none">
   <div class="tutorial-box">
@@ -514,48 +1064,48 @@
     <button class="btn-start" onclick="startGame()">Let's play!</button>
   </div>
 </div>
-
+ 
 <script>
 // ─── CITY DATABASE ───────────────────────────────────────────────────────────
 const CITIES = [
-  { name: "Mumbai",         lat: 19.0760, lng: 72.8777, zoom: 12 },
-  { name: "Delhi",          lat: 28.6139, lng: 77.2090, zoom: 12 },
-  { name: "Bangalore",      lat: 12.9716, lng: 77.5946, zoom: 12 },
-  { name: "Chennai",        lat: 13.0827, lng: 80.2707, zoom: 12 },
-  { name: "Kolkata",        lat: 22.5726, lng: 88.3639, zoom: 12 },
-  { name: "Hyderabad",      lat: 17.3850, lng: 78.4867, zoom: 12 },
-  { name: "Pune",           lat: 18.5204, lng: 73.8567, zoom: 12 },
-  { name: "Jaipur",         lat: 26.9124, lng: 75.7873, zoom: 12 },
-  { name: "Ahmedabad",      lat: 23.0225, lng: 72.5714, zoom: 12 },
-  { name: "Surat",          lat: 21.1702, lng: 72.8311, zoom: 12 },
-  { name: "Lucknow",        lat: 26.8467, lng: 80.9462, zoom: 12 },
-  { name: "Kochi",          lat: 9.9312,  lng: 76.2673, zoom: 12 },
-  { name: "Chandigarh",     lat: 30.7333, lng: 76.7794, zoom: 12 },
-  { name: "Bhopal",         lat: 23.2599, lng: 77.4126, zoom: 12 },
-  { name: "Nagpur",         lat: 21.1458, lng: 79.0882, zoom: 12 },
-  { name: "Indore",         lat: 22.7196, lng: 75.8577, zoom: 12 },
-  { name: "Varanasi",       lat: 25.3176, lng: 82.9739, zoom: 12 },
-  { name: "Visakhapatnam",  lat: 17.6868, lng: 83.2185, zoom: 12 },
-  { name: "Coimbatore",     lat: 11.0168, lng: 76.9558, zoom: 12 },
-  { name: "Patna",          lat: 25.5941, lng: 85.1376, zoom: 12 },
-  { name: "Amritsar",       lat: 31.6340, lng: 74.8723, zoom: 12 },
-  { name: "Bhubaneswar",    lat: 20.2961, lng: 85.8245, zoom: 12 },
-  { name: "Guwahati",       lat: 26.1445, lng: 91.7362, zoom: 12 },
-  { name: "Thiruvananthapuram", lat: 8.5241, lng: 76.9366, zoom: 12 },
-  { name: "Madurai",        lat: 9.9252,  lng: 78.1198, zoom: 12 },
-  { name: "Jodhpur",        lat: 26.2389, lng: 73.0243, zoom: 12 },
-  { name: "Agra",           lat: 27.1767, lng: 78.0081, zoom: 12 },
-  { name: "Vadodara",       lat: 22.3072, lng: 73.1812, zoom: 12 },
-  { name: "Mangalore",      lat: 12.9141, lng: 74.8560, zoom: 12 },
-  { name: "Mysuru",         lat: 12.2958, lng: 76.6394, zoom: 12 },
+  { name: "Mumbai",         lat: 19.0760, lng: 72.8777, zoom: 14 },
+  { name: "Delhi",          lat: 28.6139, lng: 77.2090, zoom: 14 },
+  { name: "Bangalore",      lat: 12.9716, lng: 77.5946, zoom: 14 },
+  { name: "Chennai",        lat: 13.0827, lng: 80.2707, zoom: 14 },
+  { name: "Kolkata",        lat: 22.5726, lng: 88.3639, zoom: 14 },
+  { name: "Hyderabad",      lat: 17.3850, lng: 78.4867, zoom: 14 },
+  { name: "Pune",           lat: 18.5204, lng: 73.8567, zoom: 14 },
+  { name: "Jaipur",         lat: 26.9124, lng: 75.7873, zoom: 14 },
+  { name: "Ahmedabad",      lat: 23.0225, lng: 72.5714, zoom: 14 },
+  { name: "Surat",          lat: 21.1702, lng: 72.8311, zoom: 14 },
+  { name: "Lucknow",        lat: 26.8467, lng: 80.9462, zoom: 14 },
+  { name: "Kochi",          lat: 9.9312,  lng: 76.2673, zoom: 14 },
+  { name: "Chandigarh",     lat: 30.7333, lng: 76.7794, zoom: 14 },
+  { name: "Bhopal",         lat: 23.2599, lng: 77.4126, zoom: 14 },
+  { name: "Nagpur",         lat: 21.1458, lng: 79.0882, zoom: 14 },
+  { name: "Indore",         lat: 22.7196, lng: 75.8577, zoom: 14 },
+  { name: "Varanasi",       lat: 25.3176, lng: 82.9739, zoom: 14 },
+  { name: "Visakhapatnam",  lat: 17.6868, lng: 83.2185, zoom: 14 },
+  { name: "Coimbatore",     lat: 11.0168, lng: 76.9558, zoom: 14 },
+  { name: "Patna",          lat: 25.5941, lng: 85.1376, zoom: 14 },
+  { name: "Amritsar",       lat: 31.6340, lng: 74.8723, zoom: 14 },
+  { name: "Bhubaneswar",    lat: 20.2961, lng: 85.8245, zoom: 14 },
+  { name: "Guwahati",       lat: 26.1445, lng: 91.7362, zoom: 14 },
+  { name: "Thiruvananthapuram", lat: 8.5241, lng: 76.9366, zoom: 14 },
+  { name: "Madurai",        lat: 9.9252,  lng: 78.1198, zoom: 14 },
+  { name: "Jodhpur",        lat: 26.2389, lng: 73.0243, zoom: 14 },
+  { name: "Agra",           lat: 27.1767, lng: 78.0081, zoom: 14 },
+  { name: "Vadodara",       lat: 22.3072, lng: 73.1812, zoom: 14 },
+  { name: "Mangalore",      lat: 12.9141, lng: 74.8560, zoom: 14 },
+  { name: "Mysuru",         lat: 12.2958, lng: 76.6394, zoom: 14 },
 ];
-
+ 
 // ─── DAILY SEED ──────────────────────────────────────────────────────────────
 function getDailyKey() {
   const d = new Date();
   return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
 }
-
+ 
 function seededRandom(seed) {
   let s = seed;
   return function() {
@@ -563,7 +1113,7 @@ function seededRandom(seed) {
     return (s >>> 0) / 0xffffffff;
   };
 }
-
+ 
 function getTodaysCities() {
   const key = getDailyKey();
   let hash = 0;
@@ -576,7 +1126,7 @@ function getTodaysCities() {
   }
   return shuffled.slice(0, 5);
 }
-
+ 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let map = null;
 let todaysCities = [];
@@ -584,7 +1134,7 @@ let currentRound = 0;
 let scores = [];
 const STORAGE_KEY = 'citysnap_india_v1';
 const TUTORIAL_KEY = 'citysnap_tutorial_seen';
-
+ 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     date: getDailyKey(),
@@ -592,7 +1142,7 @@ function saveState() {
     round: currentRound
   }));
 }
-
+ 
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -602,7 +1152,7 @@ function loadState() {
     return s;
   } catch(e) { return null; }
 }
-
+ 
 // ─── SCORING ─────────────────────────────────────────────────────────────────
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
@@ -611,12 +1161,12 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
-
+ 
 function calcScore(distKm) {
   if (distKm < 30) return 100;
   return Math.max(0, Math.round(100 * Math.exp(-distKm / 1800)));
 }
-
+ 
 // ─── GEOCODE ─────────────────────────────────────────────────────────────────
 async function geocodeCity(name) {
   const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name+', India')}&format=json&limit=3&countrycodes=in`;
@@ -632,30 +1182,31 @@ async function geocodeCity(name) {
   }
   return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), display: data[0].display_name };
 }
-
+ 
 // ─── MAP ─────────────────────────────────────────────────────────────────────
 function initMap(city) {
   if (map) { map.remove(); map = null; }
   map = L.map('map', {
     center: [city.lat, city.lng],
-    zoom: city.zoom,
-    zoomControl: false,
+    zoom: 14,
+    minZoom: 12,
+    maxZoom: 20,
+    zoomControl: true,
     attributionControl: true,
-    dragging: false,
-    scrollWheelZoom: false,
-    doubleClickZoom: false,
-    touchZoom: false,
+    dragging: true,
+    scrollWheelZoom: true,
+    doubleClickZoom: true,
+    touchZoom: true,
     keyboard: false,
   });
-
-  // No-label tile: CartoDB Positron No Labels (free, no auth)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 19,
+ 
+  // Terrain tile: ESRI World Imagery (real satellite, no labels, free)
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '&copy; <a href="https://www.esri.com/">Esri</a>',
+    maxZoom: 20,
   }).addTo(map);
 }
-
+ 
 // ─── ROUND DOTS ──────────────────────────────────────────────────────────────
 function updateDots() {
   const wrap = document.getElementById('round-dots');
@@ -666,7 +1217,7 @@ function updateDots() {
     wrap.appendChild(d);
   }
 }
-
+ 
 // ─── SHOW ROUND ──────────────────────────────────────────────────────────────
 function showRound(idx) {
   const city = todaysCities[idx];
@@ -682,7 +1233,7 @@ function showRound(idx) {
   updateDots();
   initMap(city);
 }
-
+ 
 // ─── SUBMIT GUESS ─────────────────────────────────────────────────────────────
 async function submitGuess() {
   const input = document.getElementById('guess-input');
@@ -690,11 +1241,11 @@ async function submitGuess() {
   const loadMsg = document.getElementById('loading-msg');
   const guess = input.value.trim();
   if (!guess) { input.focus(); return; }
-
+ 
   input.disabled = true;
   btn.disabled = true;
   loadMsg.textContent = 'Looking up your city…';
-
+ 
   let result;
   try {
     result = await geocodeCity(guess);
@@ -704,12 +1255,12 @@ async function submitGuess() {
     btn.disabled = false;
     return;
   }
-
+ 
   loadMsg.textContent = '';
-
+ 
   const actual = todaysCities[currentRound];
   let distKm, pts;
-
+ 
   if (!result) {
     distKm = 9999;
     pts = 0;
@@ -717,20 +1268,20 @@ async function submitGuess() {
     distKm = haversineKm(result.lat, result.lng, actual.lat, actual.lng);
     pts = calcScore(distKm);
   }
-
+ 
   scores.push(pts);
   saveState();
   showResult(actual, guess, result, distKm, pts);
 }
-
+ 
 // ─── SHOW RESULT ─────────────────────────────────────────────────────────────
 function showResult(actual, guess, geocoded, distKm, pts) {
   const card = document.getElementById('result-card');
   card.classList.add('show');
-
+ 
   document.getElementById('result-city-name').textContent = `The city was ${actual.name}`;
   document.getElementById('result-pts').textContent = `${pts} pts`;
-
+ 
   let meta;
   if (pts === 100) {
     meta = `Perfect! "${guess}" is spot on. 🎯`;
@@ -740,14 +1291,14 @@ function showResult(actual, guess, geocoded, distKm, pts) {
     meta = `Your guess "${guess}" was ${Math.round(distKm).toLocaleString()} km away.`;
   }
   document.getElementById('result-meta').textContent = meta;
-
+ 
   const bar = document.getElementById('score-bar');
   bar.style.width = '0%';
   // Color by score
   const pct = pts;
   bar.style.background = pct >= 80 ? '#4caf7d' : pct >= 50 ? '#e8b84b' : '#d97b4f';
   setTimeout(() => { bar.style.width = pct + '%'; }, 50);
-
+ 
   const nextBtn = document.getElementById('btn-next');
   if (currentRound >= 4) {
     nextBtn.textContent = 'See final score →';
@@ -755,7 +1306,7 @@ function showResult(actual, guess, geocoded, distKm, pts) {
     nextBtn.textContent = `Round ${currentRound + 2} →`;
   }
 }
-
+ 
 // ─── NEXT ROUND ──────────────────────────────────────────────────────────────
 function nextRound() {
   currentRound++;
@@ -766,7 +1317,7 @@ function nextRound() {
     showRound(currentRound);
   }
 }
-
+ 
 // ─── SUMMARY ─────────────────────────────────────────────────────────────────
 function showSummary() {
   document.getElementById('map-card').style.display = 'none';
@@ -774,14 +1325,14 @@ function showSummary() {
   document.getElementById('result-card').classList.remove('show');
   const card = document.getElementById('summary-card');
   card.classList.add('show');
-
+ 
   const total = scores.reduce((a,b)=>a+b,0);
   document.getElementById('total-score').textContent = total;
-
+ 
   const d = new Date();
   document.getElementById('summary-date').textContent =
     d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
-
+ 
   const grid = document.getElementById('rounds-grid');
   grid.innerHTML = '';
   scores.forEach((s, i) => {
@@ -790,10 +1341,10 @@ function showSummary() {
     chip.innerHTML = `<div class="round-chip-label">Round ${i+1}</div><div class="round-chip-pts">${s}</div>`;
     grid.appendChild(chip);
   });
-
+ 
   updateDots();
 }
-
+ 
 // ─── COPY SCORE ──────────────────────────────────────────────────────────────
 function copyScore() {
   const d = new Date();
@@ -811,7 +1362,7 @@ function copyScore() {
     setTimeout(() => t.classList.remove('show'), 2500);
   });
 }
-
+ 
 // ─── ALREADY PLAYED ──────────────────────────────────────────────────────────
 function showAlreadyPlayed(state) {
   document.getElementById('played-today').style.display = '';
@@ -833,24 +1384,24 @@ function showAlreadyPlayed(state) {
   <div id="copied-toast2" style="font-size:13px;color:var(--green);opacity:0;transition:opacity 0.3s;margin-top:6px;">Copied!</div>`;
   document.getElementById('played-score-display').innerHTML = html;
 }
-
+ 
 // ─── GAME INIT ───────────────────────────────────────────────────────────────
 function startGame() {
   localStorage.setItem(TUTORIAL_KEY, '1');
   document.getElementById('tutorial-overlay').style.display = 'none';
   beginGamePlay();
 }
-
+ 
 function beginGamePlay() {
   todaysCities = getTodaysCities();
   currentRound = 0;
   scores = [];
   showRound(0);
 }
-
+ 
 function init() {
   const savedState = loadState();
-
+ 
   // If played all 5 rounds today already
   if (savedState && savedState.scores && savedState.scores.length >= 5) {
     showAlreadyPlayed(savedState);
@@ -860,7 +1411,7 @@ function init() {
     updateDots();
     return;
   }
-
+ 
   // If mid-game today (partially played)
   if (savedState && savedState.scores && savedState.scores.length > 0 && savedState.round < 5) {
     scores = savedState.scores;
@@ -870,7 +1421,7 @@ function init() {
     showRound(currentRound);
     return;
   }
-
+ 
   // Fresh start: check tutorial
   const tutorialSeen = localStorage.getItem(TUTORIAL_KEY);
   if (!tutorialSeen) {
@@ -879,7 +1430,7 @@ function init() {
     beginGamePlay();
   }
 }
-
+ 
 window.addEventListener('load', () => {
   document.getElementById('guess-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') submitGuess();
@@ -889,3 +1440,4 @@ window.addEventListener('load', () => {
 </script>
 </body>
 </html>
+ 
