@@ -416,6 +416,20 @@
 
   /* Leaflet no-label tile attribution */
   .leaflet-control-attribution { font-size: 10px !important; }
+
+  .btn-reset-map {
+    margin-left: auto;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-reset-map:hover { background: var(--accent-light); color: var(--accent-dark); }
 </style>
 </head>
 <body>
@@ -432,6 +446,7 @@
     <div class="map-label">
       <span id="round-badge" class="round-badge">Round 1 of 5</span>
       <span>Where in India is this?</span>
+      <button class="btn-reset-map" onclick="resetMap()">Reset view</button>
     </div>
     <div id="map"></div>
   </div>
@@ -627,6 +642,12 @@ function initMap(city) {
     attribution: '',
     opacity: 0.75,
   }).addTo(map);
+}
+
+// ─── RESET MAP ───────────────────────────────────────────────────────────────
+function resetMap() {
+  const city = todaysCities[currentRound];
+  map.setView([city.lat, city.lng], 14);
 }
 
 // ─── ROUND DOTS ──────────────────────────────────────────────────────────────
