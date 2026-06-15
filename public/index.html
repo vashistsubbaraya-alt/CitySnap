@@ -416,13 +416,43 @@
 
   /* Leaflet no-label tile attribution */
   .leaflet-control-attribution { font-size: 10px !important; }
+
+  .btn-reset-map {
+    margin-left: auto;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-reset-map:hover { background: var(--accent-light); color: var(--accent-dark); }
+
+  .btn-help {
+    padding: 5px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-help:hover { background: var(--accent-light); color: var(--accent-dark); }
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="header-logo">City<span>Snap</span> <span style="font-size:14px;color:var(--text-muted);font-weight:400;">India</span></div>
-  <div id="round-dots" class="round-dots"></div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div id="round-dots" class="round-dots"></div>
+    <button class="btn-help" onclick="showHelp()">? Help</button>
+  </div>
 </div>
 
 <div class="game-wrap" id="game-wrap">
@@ -432,15 +462,15 @@
     <div class="map-label">
       <span id="round-badge" class="round-badge">Round 1 of 5</span>
       <span>Where in India is this?</span>
+      <button class="btn-reset-map" onclick="resetMap()">Reset view</button>
     </div>
     <div id="map"></div>
   </div>
 
   <!-- Guess input -->
   <div class="guess-card" id="guess-card" style="display:none">
-    <div class="guess-label">Type the name of the city you see above</div>
     <div class="guess-row">
-      <input type="text" id="guess-input" class="guess-input" placeholder="e.g. Mumbai, Jaipur…" autocomplete="off" />
+      <input type="text" id="guess-input" class="guess-input" placeholder="Type the name of the city you see above" autocomplete="off" />
       <button class="btn-guess" id="btn-guess" onclick="submitGuess()">Guess</button>
     </div>
     <div class="loading-msg" id="loading-msg"></div>
@@ -629,6 +659,12 @@ function initMap(city) {
   }).addTo(map);
 }
 
+// ─── RESET MAP ───────────────────────────────────────────────────────────────
+function resetMap() {
+  const city = todaysCities[currentRound];
+  map.setView([city.lat, city.lng], 14);
+}
+
 // ─── ROUND DOTS ──────────────────────────────────────────────────────────────
 function updateDots() {
   const wrap = document.getElementById('round-dots');
@@ -678,18 +714,20 @@ async function submitGuess() {
     return;
   }
 
+  if (!result) {
+    loadMsg.textContent = `"${guess}" doesn't seem to be a city. Please try again.`;
+    input.value = '';
+    input.disabled = false;
+    btn.disabled = false;
+    input.focus();
+    return;
+  }
+
   loadMsg.textContent = '';
 
   const actual = todaysCities[currentRound];
-  let distKm, pts;
-
-  if (!result) {
-    distKm = 9999;
-    pts = 0;
-  } else {
-    distKm = haversineKm(result.lat, result.lng, actual.lat, actual.lng);
-    pts = calcScore(distKm);
-  }
+  const distKm = haversineKm(result.lat, result.lng, actual.lat, actual.lng);
+  const pts = calcScore(distKm);
 
   scores.push(pts);
   saveState();
@@ -807,10 +845,22 @@ function showAlreadyPlayed(state) {
   document.getElementById('played-score-display').innerHTML = html;
 }
 
+// ─── HELP / TUTORIAL ─────────────────────────────────────────────────────────
+let helpMode = false;
+
+function showHelp() {
+  helpMode = true;
+  document.getElementById('tutorial-overlay').style.display = 'flex';
+}
+
 // ─── GAME INIT ───────────────────────────────────────────────────────────────
 function startGame() {
-  localStorage.setItem(TUTORIAL_KEY, '1');
   document.getElementById('tutorial-overlay').style.display = 'none';
+  if (helpMode) {
+    helpMode = false;
+    return;
+  }
+  localStorage.setItem(TUTORIAL_KEY, '1');
   beginGamePlay();
 }
 
