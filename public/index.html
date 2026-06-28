@@ -443,6 +443,23 @@
     transition: background 0.2s, color 0.2s;
   }
   .btn-help:hover { background: var(--accent-light); color: var(--accent-dark); }
+
+  .multiplier-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 20px;
+    background: var(--yellow-light);
+    color: #a07820;
+  }
+  .multiplier-badge.x2 {
+    background: #fff0cc;
+    color: #a07820;
+  }
+  .multiplier-badge.x3 {
+    background: var(--accent-light);
+    color: var(--accent-dark);
+  }
 </style>
 </head>
 <body>
@@ -461,6 +478,7 @@
   <div class="map-card" id="map-card" style="display:none">
     <div class="map-label">
       <span id="round-badge" class="round-badge">Round 1 of 5</span>
+      <span id="multiplier-badge" class="multiplier-badge">×1</span>
       <span>Where in India is this?</span>
       <button class="btn-reset-map" onclick="resetMap()">Reset view</button>
     </div>
@@ -496,7 +514,7 @@
     <div class="summary-title">Game Over!</div>
     <div class="summary-subtitle" id="summary-date"></div>
     <div class="total-score" id="total-score">0</div>
-    <div class="total-label">out of 500 points</div>
+    <div class="total-label">out of 1000 points</div>
     <div class="rounds-grid" id="rounds-grid"></div>
     <button class="btn-copy" onclick="copyScore()">
       <span>📋</span> Copy my score
@@ -561,17 +579,28 @@ function seededRandom(seed) {
   };
 }
 
+const MULTIPLIERS = [1, 1, 2, 3, 3];
+
 function getTodaysCities() {
   const key = getDailyKey();
   let hash = 0;
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
   const rng = seededRandom(Math.abs(hash));
-  const shuffled = [...CITIES];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
   }
-  return shuffled.slice(0, 5);
+
+  const tier1 = shuffle(CITIES.filter(c => c.tier === 1));
+  const first3 = tier1.slice(0, 3);
+  const picked = new Set(first3.map(c => c.name));
+  const rest = shuffle(CITIES.filter(c => !picked.has(c.name)));
+  return [...first3, ...rest.slice(0, 2)];
 }
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
@@ -643,7 +672,7 @@ function initMap(city) {
     dragging: false,
     scrollWheelZoom: true,
     doubleClickZoom: true,
-    touchZoom: true,
+    touchZoom: false,
     keyboard: false,
   });
 
@@ -680,6 +709,10 @@ function updateDots() {
 function showRound(idx) {
   const city = todaysCities[idx];
   document.getElementById('round-badge').textContent = `Round ${idx+1} of 5`;
+  const mult = MULTIPLIERS[idx];
+  const mb = document.getElementById('multiplier-badge');
+  mb.textContent = `×${mult}`;
+  mb.className = 'multiplier-badge' + (mult === 3 ? ' x3' : mult === 2 ? ' x2' : '');
   document.getElementById('map-card').style.display = '';
   document.getElementById('guess-card').style.display = '';
   document.getElementById('result-card').classList.remove('show');
@@ -727,7 +760,7 @@ async function submitGuess() {
 
   const actual = todaysCities[currentRound];
   const distKm = haversineKm(result.lat, result.lng, actual.lat, actual.lng);
-  const pts = calcScore(distKm);
+  const pts = calcScore(distKm) * MULTIPLIERS[currentRound];
 
   scores.push(pts);
   saveState();
@@ -754,8 +787,8 @@ function showResult(actual, guess, geocoded, distKm, pts) {
 
   const bar = document.getElementById('score-bar');
   bar.style.width = '0%';
-  // Color by score
-  const pct = pts;
+  const maxPts = 100 * MULTIPLIERS[currentRound];
+  const pct = Math.round((pts / maxPts) * 100);
   bar.style.background = pct >= 80 ? '#4caf7d' : pct >= 50 ? '#e8b84b' : '#d97b4f';
   setTimeout(() => { bar.style.width = pct + '%'; }, 50);
 
@@ -815,7 +848,7 @@ function copyScore() {
     const bar = '▓'.repeat(Math.round(s/10)) + '░'.repeat(10 - Math.round(s/10));
     text += `Round ${i+1}: ${bar} ${s}pts\n`;
   });
-  text += `Total: ${total}/500`;
+  text += `Total: ${total}/1000`;
   navigator.clipboard.writeText(text).then(() => {
     const t = document.getElementById('copied-toast');
     t.classList.add('show');
@@ -838,7 +871,7 @@ function showAlreadyPlayed(state) {
     var text='🗺️ CitySnap India — '+dateStr+'\\n';
     var ss=${JSON.stringify(state.scores)};
     ss.forEach(function(s,i){var bar='▓'.repeat(Math.round(s/10))+'░'.repeat(10-Math.round(s/10));text+='Round '+(i+1)+': '+bar+' '+s+'pts\\n';});
-    text+='Total: ${total}/500';
+    text+='Total: ${total}/1000';
     navigator.clipboard.writeText(text).then(function(){var t=document.getElementById('copied-toast2');t.style.opacity=1;setTimeout(function(){t.style.opacity=0;},2500);});
   })()">📋 Copy my score</button>
   <div id="copied-toast2" style="font-size:13px;color:var(--green);opacity:0;transition:opacity 0.3s;margin-top:6px;">Copied!</div>`;
