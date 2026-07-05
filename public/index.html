@@ -553,10 +553,14 @@
       </div>
       <div class="tutorial-step">
         <div class="step-num">3</div>
-        <div class="step-text">Score is based on how close your guess is to the actual city. Exact match = 100 pts. Farther away = fewer points.</div>
+        <div class="step-text">Score is based on how close your guess is to the actual city — an exact match earns full points, and the further away your guess, the fewer points you get.</div>
       </div>
       <div class="tutorial-step">
         <div class="step-num">4</div>
+        <div class="step-text">Points are multiplied in later rounds — rounds 3, 4, and 5 are worth more, so a great guess late in the game can turn everything around.</div>
+      </div>
+      <div class="tutorial-step">
+        <div class="step-num">5</div>
         <div class="step-text">Play all 5 rounds and share your total score with friends!</div>
       </div>
     </div>
@@ -843,12 +847,15 @@ function copyScore() {
   const d = new Date();
   const dateStr = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   const total = scores.reduce((a,b)=>a+b,0);
-  let text = `🗺️ CitySnap India — ${dateStr}\n`;
-  scores.forEach((s, i) => {
-    const bar = '▓'.repeat(Math.round(s/10)) + '░'.repeat(10 - Math.round(s/10));
-    text += `Round ${i+1}: ${bar} ${s}pts\n`;
+  let text = `I scored ${total}/1000 on CitySnap India 🗺️\n`;
+  text += `${dateStr} · Can you beat it?\n`;
+  text += `👉 ${window.location.href}\n\n`;
+  const parts = scores.map((s, i) => {
+    const pct = s / (100 * MULTIPLIERS[i]);
+    const emoji = pct === 1 ? '🏆' : pct >= 0.8 ? '🌟' : pct >= 0.5 ? '⭐' : '📍';
+    return `${emoji} ${s}`;
   });
-  text += `Total: ${total}/1000`;
+  text += parts.join('  ') + '\n';
   navigator.clipboard.writeText(text).then(() => {
     const t = document.getElementById('copied-toast');
     t.classList.add('show');
@@ -860,7 +867,7 @@ function copyScore() {
 function showAlreadyPlayed(state) {
   document.getElementById('played-today').style.display = '';
   const total = state.scores.reduce((a,b)=>a+b,0);
-  let html = `<div style="font-size:28px;font-weight:800;color:var(--accent);margin-bottom:4px;">${total}<span style="font-size:16px;color:var(--text-muted);font-weight:400;">/500</span></div>`;
+  let html = `<div style="font-size:28px;font-weight:800;color:var(--accent);margin-bottom:4px;">${total}<span style="font-size:16px;color:var(--text-muted);font-weight:400;">/1000</span></div>`;
   html += '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;">';
   state.scores.forEach((s,i) => {
     html += `<div style="background:var(--accent-light);border-radius:8px;padding:6px 10px;text-align:center;"><div style="font-size:11px;color:var(--accent-dark);font-weight:600;">R${i+1}</div><div style="font-size:18px;font-weight:700;color:var(--accent);">${s}</div></div>`;
@@ -868,10 +875,11 @@ function showAlreadyPlayed(state) {
   html += '</div>';
   html += `<button class="btn-copy" onclick="(function(){
     var d=new Date();var dateStr=d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
-    var text='🗺️ CitySnap India — '+dateStr+'\\n';
+    var text='I scored ${total}/1000 on CitySnap India 🗺️\\n';
+    text+=dateStr+' · Can you beat it?\\n';
+    text+='👉 '+window.location.href+'\\n\\n';
     var ss=${JSON.stringify(state.scores)};
-    ss.forEach(function(s,i){var bar='▓'.repeat(Math.round(s/10))+'░'.repeat(10-Math.round(s/10));text+='Round '+(i+1)+': '+bar+' '+s+'pts\\n';});
-    text+='Total: ${total}/1000';
+    var mults=[1,1,2,3,3];var parts=ss.map(function(s,i){var pct=s/(100*mults[i]);var emoji=pct===1?'🏆':pct>=0.8?'🌟':pct>=0.5?'⭐':'📍';return emoji+' '+s;});text+=parts.join('  ')+'\\n';
     navigator.clipboard.writeText(text).then(function(){var t=document.getElementById('copied-toast2');t.style.opacity=1;setTimeout(function(){t.style.opacity=0;},2500);});
   })()">📋 Copy my score</button>
   <div id="copied-toast2" style="font-size:13px;color:var(--green);opacity:0;transition:opacity 0.3s;margin-top:6px;">Copied!</div>`;
